@@ -21,7 +21,7 @@ https://www.kaggle.com/datasets/sulianova/cardiovascular-disease-dataset/data
 
 ### Local data files
 - **Raw**: `data/cardio_train.csv` (downloaded from Kaggle; uses `;` as the separator)
-- **Derived**: `data/cleaned_data.csv` (created by `notebooks/data_cleaning.ipynb`)
+- **Cleaned**: `data/cleaned_data.csv` (created by `notebooks/data_cleaning.ipynb`)
 
 ## Repository layout
 - `data/`
@@ -40,9 +40,7 @@ https://www.kaggle.com/datasets/sulianova/cardiovascular-disease-dataset/data
 - `python -m pip install -r requirements.txt`
 
 2) Get the dataset:
-- Place `cardio_train.csv` into `data/` (downloaded from Kaggle), or use Kaggle CLI:
-  - `kaggle datasets download -d sulianova/cardiovascular-disease-dataset -p data/`
-  - `unzip -o data/cardiovascular-disease-dataset.zip -d data/`
+- Place `cardio_train.csv` into `data/` 
 
 3) Run the notebooks:
 - `jupyter lab`
@@ -57,7 +55,7 @@ Key transformations:
 - Renames raw columns into readable names (e.g., `ap_hi` → `systolic blood pressure`)
 - Maps coded categorical integers into human-readable categories (e.g., `cholesterol`, `glucose`)
 - Converts `age` from days to years
-- Filters implausible values (height/weight/blood pressure ranges)
+- Filters impossible values (height/weight/blood pressure ranges)
 - Engineers `bmi` and categorical `weight status`
 - Removes exact duplicate rows
 - Saves the result to `data/cleaned_data.csv`
@@ -119,13 +117,6 @@ Observed proportional shifts (largest category differences, `Yes` minus `No`):
 - **Potential leakage risk**: feature selection and hyperparameter tuning must be done inside CV/pipelines (planned).
 - **Generalization**: dataset population may not match your target deployment population.
 
-## Production-ready README additions
-Common additions in production data science repositories:
-- Environment specification (`requirements.txt` / `environment.yml`) and exact run commands
-- Reproducibility details (random seeds, artifact locations, deterministic data versions)
-- Results table with model metrics (and confidence intervals when appropriate)
-- Model card (intended use, non-goals, fairness considerations, monitoring plan)
-- Repository hygiene (`.gitignore`, no committed virtualenv/IDE files, controlled outputs)
 
 ## Acknowledgements
 - Sulianova (Kaggle): Cardiovascular Disease Dataset. https://www.kaggle.com/datasets/sulianova/cardiovascular-disease-dataset/data
