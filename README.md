@@ -24,13 +24,16 @@ https://www.kaggle.com/datasets/sulianova/cardiovascular-disease-dataset/data
 - **Cleaned**: `data/cleaned_data.csv` (created by `notebooks/data_cleaning.ipynb`)
 
 ## Repository layout
+- `README.md`: project overview + how to run + results
+- `requirements.txt`: Python dependencies
+- `learnings`: written rationale for the modeling flow (steps 1–8)
 - `data/`
   - `cardio_train.csv` (raw, Kaggle)
   - `cleaned_data.csv` (cleaned + feature engineered)
 - `notebooks/`
   - `data_cleaning.ipynb`: cleaning + feature engineering, writes `cleaned_data.csv`
   - `eda.ipynb`: exploratory analysis and hypothesis-driven checks
-  - `model_building.ipynb`: preprocessing + model training (in progress)
+  - `model_building.ipynb`: leakage-safe modeling (CV + tuning + final test evaluation)
 
 ## How to run (recommended order)
 ### Quickstart
@@ -38,6 +41,9 @@ https://www.kaggle.com/datasets/sulianova/cardiovascular-disease-dataset/data
 - `python3 -m venv .venv`
 - `source .venv/bin/activate`
 - `python -m pip install -r requirements.txt`
+
+If using XGBoost on macOS, install OpenMP runtime (one-time):
+- `brew install libomp`
 
 2) Get the dataset:
 - Place `cardio_train.csv` into `data/` 
@@ -67,32 +73,21 @@ What it covers:
 - Basic hypothesis tests (e.g., Welch’s t-test, chi-square) and an odds ratio example
 - Correlation heatmap for numeric features
 
-### 3) Model building (in progress) (`notebooks/model_building.ipynb`)
-Implemented so far:
-- Train/validation/test splitting with stratification
-- A `ColumnTransformer` design:
-  - numeric scaling (RobustScaler)
-  - ordinal encoding (ordered categories for `cholesterol`, `glucose`, `weight status`)
-  - one-hot encoding for nominal features
+### 3) Model building (`notebooks/model_building.ipynb`)
+What it does:
+- Creates a **stratified holdout test set** (used once at the end)
+- Builds a leakage-safe preprocessing + modeling `Pipeline` using `ColumnTransformer`
+- Compares baselines with **cross-validation on training only** (`StratifiedKFold`)
+- Tunes hyperparameters (`GridSearchCV` / `RandomizedSearchCV`)
+- Evaluates final performance on the holdout test set (ROC-AUC, PR-AUC, confusion matrix)
 
-Planned next steps (skeleton):
-- [ ] Build an end-to-end `Pipeline(preprocessor → model)` to prevent leakage
-- [ ] Establish baselines:
-  - [ ] Logistic Regression
-  - [ ] Random Forest
-- [ ] Model selection via cross-validation (e.g., `StratifiedKFold`)
-- [ ] Evaluate on holdout test set with:
-  - [ ] ROC-AUC and PR-AUC
-  - [ ] confusion matrix at an operating threshold
-  - [ ] calibration (probability quality)
-- [ ] Hyperparameter tuning (grid/random search)
-- [ ] Interpretability:
-  - [ ] coefficient inspection (logistic regression)
-  - [ ] permutation importance / tree-based importances
-- [ ] Save artifacts (model, metrics, plots) for reproducibility
+Leakage statement (explicit):
+> All preprocessing steps were fit on the training data only and applied to validation/test sets.
+
+The detailed “why” behind each modeling step is documented in `learnings`.
 
 ## Results summary (current)
-Modeling results are not finalized yet. Current results are descriptive from the cleaned dataset and EDA.
+Results include dataset/EDA summaries plus a baseline modeling run. Metrics can change slightly when re-running due to randomness and environment differences; random seeds are fixed where possible.
 
 ### Cleaned dataset snapshot
 - Rows/columns: **64,899 × 14**
@@ -111,11 +106,24 @@ Observed proportional shifts (largest category differences, `Yes` minus `No`):
 - Weight status: fewer `Healthy` and more `Obese` in `Yes`
 - Physical activity: lower `Yes` and higher `No` in `Yes`
 
+### Modeling (baseline run)
+From `notebooks/model_building.ipynb` using a leakage-safe pipeline and a single holdout test set:
+- Best baseline (by CV ROC-AUC): Logistic Regression
+- Holdout test ROC-AUC: **~0.79**
+- Holdout test PR-AUC: **~0.78**
+
 ## Assumptions, risks, and limitations
 - **Not clinical-grade**: no external validation; no prospective evaluation; no calibration guarantee.
 - **Observational confounding**: associations in EDA do not imply interventions will change outcomes.
-- **Potential leakage risk**: feature selection and hyperparameter tuning must be done inside CV/pipelines (planned).
+- **Leakage control**: preprocessing and model selection are done via pipelines and CV on training only; the test set is used once.
 - **Generalization**: dataset population may not match your target deployment population.
+
+## Next improvements
+High-value additions for a more production-like workflow:
+- Calibration and reliability checks (Brier score, calibration curve)
+- Threshold selection driven by a business/clinical constraint (e.g., minimum recall)
+- Error analysis (false positives/false negatives) and model monitoring considerations
+- Model-agnostic feature importance (permutation importance) and stronger interpretability
 
 
 ## Acknowledgements
