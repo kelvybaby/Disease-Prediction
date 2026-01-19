@@ -1,0 +1,87 @@
+# Learnings: Modeling flow (end-to-end, leakage-safe)
+
+This is the “why” behind the modeling notebook (`notebooks/model_building.ipynb`). The goal is clean, reproducible modeling with explicit leakage prevention.
+
+**Leakage policy (explicit):**  
+All preprocessing steps are fit on training data only and then applied to validation/test data. This is enforced by putting preprocessing + model into a single scikit-learn `Pipeline` and using cross-validation on that pipeline.
+
+## 1) Load data + define `X` and `y`
+What happens:
+- Load `data/cleaned_data.csv`.
+- Define features `X` (all columns except `disease`) and target `y` (map `Yes→1`, `No→0`).
+
+Why:
+- Most estimators expect numeric targets.
+- Keeping `X`/`y` separate prevents accidental target leakage (e.g., leaving the label in the feature set).
+
+## 2) Create a holdout test set (touched once)
+What happens:
+- Split once into `X_train, X_test, y_train, y_test` with `stratify=y`.
+
+Why:
+- The test set is the “final exam” for an unbiased estimate after all decisions are made.
+- Stratification keeps class proportions similar across splits so test metrics are stable and comparable.
+- The test set should not be used for feature selection, hyperparameter tuning, or threshold selection.
+
+## 3) Define preprocessing (but don’t fit it globally)
+What happens:
+- Build a `ColumnTransformer`:
+  - numeric → scaler
+  - ordinal categoricals → `OrdinalEncoder` with explicit ordering
+  - nominal categoricals → `OneHotEncoder`
+
+Why:
+- Models need numeric input.
+- Correct encoding matters:
+  - ordinal features have meaningful order (don’t one-hot unless you intend to discard ordering)
+  - nominal features should not be treated as “ordered numbers”
+- The transformer is a learnable step (it computes medians/IQRs and category mappings), so it must be fit only on training data.
+
+## 4) Build end-to-end pipelines (preprocess → model)
+What happens:
+- Wrap `preprocessor` and each classifier into a `Pipeline`.
+
+Why:
+- Clean API: `fit/predict/predict_proba` on one object.
+- Primary leakage protection: during CV, each fold fits preprocessing only on that fold’s training split.
+
+## 5) Compare baselines with cross-validation (training only)
+What happens:
+- For each pipeline, run `cross_validate(..., cv=StratifiedKFold(...), scoring=...)` on `X_train, y_train`.
+
+Why:
+- This compares model families fairly without touching the test set.
+- CV reduces the chance you choose a model based on a “lucky” single split.
+- Multiple metrics are computed to see tradeoffs, but only one should be the primary selection metric.
+
+## 6) Pick a primary selection metric
+What happens:
+- Choose one metric to rank baselines (commonly ROC-AUC or PR-AUC).
+
+Why:
+- You need a consistent rule for “best baseline” before tuning.
+- Threshold-free metrics (ROC-AUC / PR-AUC) are usually better for selection than accuracy/precision/recall at an arbitrary cutoff.
+
+## 7) Hyperparameter tuning (still training-only CV)
+What happens:
+- Tune only the chosen baseline:
+  - `GridSearchCV` for small search spaces
+  - `RandomizedSearchCV` for larger ones
+- `refit=True` retrains the best pipeline on all training data (`X_train, y_train`).
+
+Why:
+- Hyperparameters can change performance substantially; tuning improves generalization.
+- Doing this inside CV keeps the evaluation honest (no peeking at the test set).
+- Refit gives a single “final” trained pipeline for downstream evaluation.
+
+## 8) Final evaluation on the holdout test set (once)
+What happens:
+- `final_model = search.best_estimator_`
+- Evaluate on `X_test, y_test`:
+  - probability-based metrics (ROC-AUC, PR-AUC)
+  - threshold-based report (classification report/confusion matrix) using a default threshold (often 0.5)
+
+Why:
+- This is the first and only time the holdout test is used for performance reporting.
+- Probability metrics evaluate ranking quality across thresholds.
+- Threshold-based metrics are useful, but the threshold should be chosen using training/CV only (e.g., a minimum recall requirement), not tuned on the test set.
