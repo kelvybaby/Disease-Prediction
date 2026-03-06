@@ -1,9 +1,9 @@
 # Cardiovascular Disease Prediction
 
 ## Project goal
-Build a reproducible, end-to-end data science workflow that predicts the presence of cardiovascular disease (`disease`) from routine health and lifestyle features. The project is structured as a realistic DS deliverable: data cleaning → EDA → modeling → evaluation → (future) packaging and reporting.
+Build a reproducible, end-to-end data science workflow that predicts the presence of cardiovascular disease (`disease`) from routine health and lifestyle features. The project is structured as such: data cleaning -> EDA -> modeling -> evaluation -> packaging and reporting.
 
-## Why this project (business + public health motivation)
+## Why this project (business and public health motivation)
 An imagined stakeholder is a regional health system (or payer/provider partnership) that wants to reduce preventable cardiovascular events by identifying higher-risk patients earlier.
 
 How this can create value:
@@ -12,7 +12,7 @@ How this can create value:
 - **Resource allocation**: reduce avoidable admissions by focusing preventive resources where they matter most.
 - **Public health impact**: earlier detection + behavior change support can reduce morbidity and long-term healthcare costs.
 
-Important caveat: this dataset is observational and the model is **not** a medical device. Results here are for learning and prototyping, not clinical decision-making.
+Important caveat: this dataset is observational and the model is not a medical device. Results here are for learning and prototyping, not clinical decision-making.
 
 ## Data source (Kaggle)
 Dataset: Cardiovascular Disease Dataset on Kaggle  
@@ -94,7 +94,7 @@ Results include dataset/EDA summaries plus a baseline modeling run. Metrics can 
 - Target prevalence (`disease=Yes`): **~50.9%**
 - No missing values after cleaning (as saved in `data/cleaned_data.csv`)
 
-### EDA highlights (descriptive, not causal)
+### EDA highlights (descriptive)
 Observed mean differences by `disease` label:
 - Age: `Yes` ~ **54.93** vs `No` ~ **51.72**
 - BMI: `Yes` ~ **28.57** vs `No` ~ **26.63**
